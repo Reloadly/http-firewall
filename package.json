@@ -15,7 +15,9 @@
     "test": "jest"
   },
   "jest": {
-    "testMatch": ["**/*.tests.ts"]
+    "testMatch": [
+      "**/*.tests.ts"
+    ]
   },
   "repository": {
     "type": "git",

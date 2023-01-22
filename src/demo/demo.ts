@@ -20,7 +20,7 @@ app.listen(port, () => {
 });
 
 
-function firewallOptions() : HttpFirewallOptions  {
+function firewallOptions(): HttpFirewallOptions {
 
     // Allows traffic from specific hosts only
     const allowedHostnamesPredicate =

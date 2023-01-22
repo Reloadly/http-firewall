@@ -1,9 +1,8 @@
-
 import {HttpFirewallOptions} from "../types";
 import {StrictHttpFirewall} from "../strict.http.firewall";
 import express from "express";
 import request from "supertest";
-import assert from "node:assert";
+
 describe('HttpStrictFirewall test suite', () => {
 
     describe('Integration Tests: .firewall()', () => {

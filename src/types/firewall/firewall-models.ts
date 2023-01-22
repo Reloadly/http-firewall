@@ -3,11 +3,12 @@ import {NextFunction, Request, Response} from "express";
 export type PredicateType<T> = (x: T) => boolean;
 
 export class Predicate<T> {
-    constructor(private condition: PredicateType<T>) {}
-
-    private static isInstance = <T>(input: Predicate<T> | PredicateType<T>): Predicate<T> => (input instanceof Predicate) ? input : Predicate.of(input);
+    constructor(private condition: PredicateType<T>) {
+    }
 
     public static of = <T>(condition: PredicateType<T>) => new Predicate(condition);
+
+    private static isInstance = <T>(input: Predicate<T> | PredicateType<T>): Predicate<T> => (input instanceof Predicate) ? input : Predicate.of(input);
 
     public and = (input: Predicate<T> | PredicateType<T>): Predicate<T> =>
         Predicate.of((x: T) => this.test(x) && Predicate.isInstance(input).test(x));
@@ -74,7 +75,7 @@ export interface HttpFirewallOptions {
      *
      * Default is false
      */
-    allowSemicolon?:boolean;
+    allowSemicolon?: boolean;
 
     /**
      * <p>
@@ -133,7 +134,7 @@ export interface HttpFirewallOptions {
      * </p>
      * Default is false
      */
-    allowBackSlash?:boolean;
+    allowBackSlash?: boolean;
 
     /**
      * <p>
@@ -234,8 +235,9 @@ export interface HttpFirewallOptions {
      */
     logToConsole?: boolean;
 }
+
 export interface HttpFirewall {
-    firewall: (req: Request, res: Response, next: NextFunction) => void ;
+    firewall: (req: Request, res: Response, next: NextFunction) => void;
 }
 
 export interface EvaluationResult {
@@ -251,4 +253,4 @@ export class RequestRejectedError extends Error {
     }
 }
 
-export const FORBIDDEN =  "FORBIDDEN";
+export const FORBIDDEN = "FORBIDDEN";

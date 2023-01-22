@@ -61,10 +61,10 @@ export class StrictHttpFirewall implements HttpFirewall {
 
     // ~~~~~~ holders
     private logToConsole: boolean = false;
-    private  encodedUrlBlocklist: string[] = [];
-    private  decodedUrlBlocklist: string[] = [];
+    private encodedUrlBlocklist: string[] = [];
+    private decodedUrlBlocklist: string[] = [];
     private readonly allowedHttpMethods: HttpMethod[] = this.createDefaultAllowedHttpMethods();
-    private readonly allowedHostnames: Predicate<String>  = new Predicate<string>(hostName => true);
+    private readonly allowedHostnames: Predicate<String> = new Predicate<string>(hostName => true);
     private readonly ASSIGNED_AND_NOT_ISO_CONTROL_PATTERN: RegExp = new RegExp(`[\p{IsAssigned}&&[^\p{IsControl}]]*`, 'g');
     private readonly ASSIGNED_AND_NOT_ISO_CONTROL_PREDICATE: Predicate<string>
         = new Predicate<string>(testName => this.ASSIGNED_AND_NOT_ISO_CONTROL_PATTERN.test(testName));
@@ -75,7 +75,7 @@ export class StrictHttpFirewall implements HttpFirewall {
 
     // private readonly FUNKY_CHAR: string[] = ['~~~'];
 
-    constructor(options? : HttpFirewallOptions) {
+    constructor(options?: HttpFirewallOptions) {
         this.urlBlocklistsAddAll(this.FORBIDDEN_SEMICOLON)
         this.urlBlocklistsAddAll(this.FORBIDDEN_FORWARDSLASH)
         this.urlBlocklistsAddAll(this.FORBIDDEN_DOUBLE_FORWARDSLASH)
@@ -84,10 +84,10 @@ export class StrictHttpFirewall implements HttpFirewall {
         this.urlBlocklistsAddAll(this.FORBIDDEN_LF)
         this.urlBlocklistsAddAll(this.FORBIDDEN_CR)
         this.encodedUrlBlocklist.push(this.ENCODED_PERCENT)
-        this.encodedUrlBlocklist.push(... this.FORBIDDEN_ENCODED_PERIOD)
+        this.encodedUrlBlocklist.push(...this.FORBIDDEN_ENCODED_PERIOD)
         this.decodedUrlBlocklist.push(this.PERCENT)
-        this.encodedUrlBlocklist.push(... this.FORBIDDEN_LINE_SEPARATOR)
-        this.encodedUrlBlocklist.push(... this.FORBIDDEN_PARAGRAPH_SEPARATOR)
+        this.encodedUrlBlocklist.push(...this.FORBIDDEN_LINE_SEPARATOR)
+        this.encodedUrlBlocklist.push(...this.FORBIDDEN_PARAGRAPH_SEPARATOR)
 
         if (options !== undefined) {
 
@@ -95,11 +95,11 @@ export class StrictHttpFirewall implements HttpFirewall {
                 this.logToConsole = true;
             }
 
-            this.allowedHttpMethods  = options.unsafeAllowAnyHttpMethod === true ?
+            this.allowedHttpMethods = options.unsafeAllowAnyHttpMethod === true ?
                 this.ALLOW_ANY_HTTP_METHOD : this.createDefaultAllowedHttpMethods()
 
             if (options.allowedHttpMethods !== undefined) {
-                this.allowedHttpMethods  = options.allowedHttpMethods.length !== 0 ?
+                this.allowedHttpMethods = options.allowedHttpMethods.length !== 0 ?
                     // remove duplicates
                     options.allowedHttpMethods : this.ALLOW_ANY_HTTP_METHOD
             }
@@ -125,7 +125,7 @@ export class StrictHttpFirewall implements HttpFirewall {
             if (options.allowUrlEncodedPeriod === true) {
                 this.removeItems(this.encodedUrlBlocklist, this.FORBIDDEN_ENCODED_PERIOD)
             } else {
-                this.encodedUrlBlocklist.push(... this.FORBIDDEN_ENCODED_PERIOD)
+                this.encodedUrlBlocklist.push(...this.FORBIDDEN_ENCODED_PERIOD)
             }
 
             if (options.allowBackSlash === true) {
@@ -163,13 +163,13 @@ export class StrictHttpFirewall implements HttpFirewall {
             if (options.allowUrlEncodedParagraphSeparator === true) {
                 this.removeItems(this.encodedUrlBlocklist, this.FORBIDDEN_PARAGRAPH_SEPARATOR)
             } else {
-                this.encodedUrlBlocklist.push(... this.FORBIDDEN_PARAGRAPH_SEPARATOR)
+                this.encodedUrlBlocklist.push(...this.FORBIDDEN_PARAGRAPH_SEPARATOR)
             }
 
             if (options.allowUrlEncodedLineSeparator === true) {
                 this.removeItems(this.encodedUrlBlocklist, this.FORBIDDEN_LINE_SEPARATOR)
             } else {
-                this.encodedUrlBlocklist.push(... this.FORBIDDEN_LINE_SEPARATOR)
+                this.encodedUrlBlocklist.push(...this.FORBIDDEN_LINE_SEPARATOR)
             }
 
             if (options.allowedHeaderNames !== undefined) {
@@ -194,6 +194,78 @@ export class StrictHttpFirewall implements HttpFirewall {
         }
     }
 
+    private static isNormalizedRequest = (req: Request): boolean => {
+
+        if (!StrictHttpFirewall.isNormalized(req.url)) {
+            return false;
+        }
+        if (!StrictHttpFirewall.isNormalized(req.originalUrl)) {
+            return false;
+        }
+        if (!StrictHttpFirewall.isNormalized(req.path)) {
+            return false;
+        }
+        return StrictHttpFirewall.isNormalized(req.route);
+
+    }
+
+    private static encodedUrlContains = (req: Request, value: string): boolean => {
+        if (StrictHttpFirewall.valueContains(req.path, value)) {
+            return true;
+        }
+
+        return StrictHttpFirewall.valueContains(req.url, value);
+    }
+
+    private static decodedUrlContains = (req: Request, value: string): boolean => {
+        return StrictHttpFirewall.valueContains(req.path, value);
+
+    }
+
+    private static containsOnlyPrintableAsciiCharacters = (uri: string): boolean => {
+        if (uri === undefined || uri === null) {
+            return true;
+        }
+        const length = uri.length
+
+        for (let i = 0; i < length; i++) {
+            const ch = uri.charAt(i);
+            if (ch < '\u0020' || ch > '\u007e') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static valueContains = (value: string, contains: string): boolean => {
+        return value != null && (value.indexOf(contains) !== -1);
+    }
+
+    /**
+     * Checks whether a path is normalized (doesn't contain path traversal sequences like
+     * "./", "/../" or "/.")
+     * @param path the path to test
+     * @return true if the path doesn't contain any path-traversal character sequences.
+     */
+    private static isNormalized = (path: string): boolean => {
+        if (path === undefined || path === null) {
+            return true;
+        }
+
+        for (let i = path.length; i > 0;) {
+            let slashIndex = path.lastIndexOf('/', i - 1);
+            let gap = i - slashIndex;
+            if (gap == 2 && path.charAt(slashIndex + 1) == '.') {
+                return false; // ".", "/./" or "/."
+            }
+            if (gap == 3 && path.charAt(slashIndex + 1) == '.' && path.charAt(slashIndex + 2) == '.') {
+                return false;
+            }
+            i = slashIndex;
+        }
+        return true;
+    }
+
     public firewall = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
 
         await this.rejectForbiddenHttpMethod(req)
@@ -211,14 +283,14 @@ export class StrictHttpFirewall implements HttpFirewall {
 
     }
 
-    private rejectNonNormalizedRequests = async (req: Request) : Promise<void> => {
+    private rejectNonNormalizedRequests = async (req: Request): Promise<void> => {
         if (!StrictHttpFirewall.isNormalizedRequest(req)) {
             throw new RequestRejectedError(`The request was rejected because the URL was not normalized.`);
         }
     }
 
-    private rejectNonPrintableAsciiCharactersInFieldName = async (req: Request, toCheck:string,
-                                                            propertyName:string) : Promise<void> => {
+    private rejectNonPrintableAsciiCharactersInFieldName = async (req: Request, toCheck: string,
+                                                                  propertyName: string): Promise<void> => {
         if (!StrictHttpFirewall.containsOnlyPrintableAsciiCharacters(toCheck)) {
             throw new RequestRejectedError(`The ${propertyName} was rejected because it can only contain \
             printable ASCII characters.`);
@@ -226,8 +298,8 @@ export class StrictHttpFirewall implements HttpFirewall {
     }
 
     private urlBlocklistsAddAll(values: string[]) {
-        this.encodedUrlBlocklist.push(... values);
-        this.decodedUrlBlocklist.push(... values);
+        this.encodedUrlBlocklist.push(...values);
+        this.decodedUrlBlocklist.push(...values);
     }
 
     private urlBlocklistsRemoveAll(values: string[]) {
@@ -244,7 +316,7 @@ export class StrictHttpFirewall implements HttpFirewall {
         }
     }
 
-    private rejectedBlocklistedUrls = async (req: Request) : Promise<void> => {
+    private rejectedBlocklistedUrls = async (req: Request): Promise<void> => {
         const errorMessage = `The request was rejected because the URL contained a potentially ` +
             `malicious String ${req.url}`;
         const error = new RequestRejectedError(errorMessage);
@@ -262,79 +334,7 @@ export class StrictHttpFirewall implements HttpFirewall {
         }
     }
 
-    private static isNormalizedRequest = (req: Request) : boolean => {
-
-        if (!StrictHttpFirewall.isNormalized(req.url)) {
-            return false;
-        }
-        if (!StrictHttpFirewall.isNormalized(req.originalUrl)) {
-            return false;
-        }
-        if (!StrictHttpFirewall.isNormalized(req.path)) {
-            return false;
-        }
-        return StrictHttpFirewall.isNormalized(req.route);
-
-    }
-
-    private static encodedUrlContains = (req: Request, value: string) : boolean => {
-        if (StrictHttpFirewall.valueContains(req.path, value)) {
-            return true;
-        }
-
-        return StrictHttpFirewall.valueContains(req.url, value);
-    }
-
-    private static decodedUrlContains = (req: Request, value: string) : boolean => {
-        return StrictHttpFirewall.valueContains(req.path, value);
-
-    }
-
-    private static containsOnlyPrintableAsciiCharacters = (uri: string) : boolean => {
-        if (uri === undefined || uri === null) {
-            return true;
-        }
-        const length = uri.length
-
-        for (let i = 0; i < length; i++) {
-            const ch = uri.charAt(i);
-            if (ch < '\u0020' || ch > '\u007e') {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static valueContains = (value: string, contains: string) : boolean => {
-        return value != null && (value.indexOf(contains) !== -1);
-    }
-
-    /**
-     * Checks whether a path is normalized (doesn't contain path traversal sequences like
-     * "./", "/../" or "/.")
-     * @param path the path to test
-     * @return true if the path doesn't contain any path-traversal character sequences.
-     */
-    private static isNormalized = (path: string) : boolean => {
-        if (path === undefined || path === null) {
-            return true;
-        }
-
-        for ( let i  = path.length; i > 0;) {
-            let slashIndex = path.lastIndexOf('/', i - 1);
-            let gap = i - slashIndex;
-            if (gap == 2 && path.charAt(slashIndex + 1) == '.') {
-                return false; // ".", "/./" or "/."
-            }
-            if (gap == 3 && path.charAt(slashIndex + 1) == '.' && path.charAt(slashIndex + 2) == '.') {
-                return false;
-            }
-            i = slashIndex;
-        }
-        return true;
-    }
-
-    private rejectedUntrustedHosts = async (req: Request) : Promise<void> => {
+    private rejectedUntrustedHosts = async (req: Request): Promise<void> => {
 
         const serverName = req.hostname
         if (serverName !== undefined && serverName !== null && !this.allowedHostnames.test(serverName)) {
@@ -342,7 +342,7 @@ export class StrictHttpFirewall implements HttpFirewall {
         }
     }
 
-    private rejectForbiddenHttpMethod = async (req: Request) : Promise<void> => {
+    private rejectForbiddenHttpMethod = async (req: Request): Promise<void> => {
         if (this.allowedHttpMethods === this.ALLOW_ANY_HTTP_METHOD) {
             return;
         }
@@ -355,16 +355,16 @@ export class StrictHttpFirewall implements HttpFirewall {
     }
 
     private reject = (req: Request, res: Response) => {
-        res.writeHead(403, { "Content-Type": "text/plain" })
+        res.writeHead(403, {"Content-Type": "text/plain"})
         res.end(JSON.stringify(FORBIDDEN));
     }
 
-    private createDefaultAllowedHttpMethods() : HttpMethod[] {
+    private createDefaultAllowedHttpMethods(): HttpMethod[] {
 
         return ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"];
     }
 }
 
-export const httpFirewall = async (req: Request, res: Response, next: NextFunction)  => {
+export const httpFirewall = async (req: Request, res: Response, next: NextFunction) => {
     return await new StrictHttpFirewall().firewall(req, res, next)
 }
