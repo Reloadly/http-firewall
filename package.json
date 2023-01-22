@@ -1,6 +1,6 @@
 {
   "name": "@prizemates/httpt-firewall",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "HTTP Firewall based on Spring Security HttpFirewall",
   "private": false,
   "main": "./dist/demo/demo.js",
@@ -29,7 +29,7 @@
     "Security"
   ],
   "author": "Arun Patra",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "express": "^4.18.2"
   },
