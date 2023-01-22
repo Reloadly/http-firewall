@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "declaration": true,
+        "target": "ES2018",
+        "sourceMap": true,
+        "inlineSources": true,
+        "sourceRoot": "/",
+        "strict": false,
+        "lib": [
+            "es2019"
+        ],
+        "declarationMap": true,
+        "module": "commonjs",
+        "outDir": "dist",
+        "esModuleInterop": true,
+        "moduleResolution": "node"
+    },
+    "include": [
+        "src"
+    ]
+}
