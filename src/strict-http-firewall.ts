@@ -17,6 +17,7 @@ export class Predicate<T> {
   public or = (input: Predicate<T> | PredicateType<T>): Predicate<T> =>
     Predicate.of((x: T) => this.test(x) || Predicate.isInstance(input).test(x));
 
+  // noinspection JSUnusedGlobalSymbols
   public not = (): Predicate<T> => Predicate.of((x: T) => !this.test(x));
 
   public test = (x: T): boolean => this.condition(x);
@@ -266,7 +267,7 @@ class StrictHttpFirewall {
   private readonly FORBIDDEN_LINE_SEPARATOR: string[] = ['\u2028'];
   private readonly FORBIDDEN_PARAGRAPH_SEPARATOR: string[] = ['\u2029'];
 
-  private logToConsole: boolean = false;
+  private readonly logToConsole: boolean = false;
   private encodedUrlBlocklist: string[] = [];
   private decodedUrlBlocklist: string[] = [];
   private readonly allowedHttpMethods: HttpMethod[] = this.createDefaultAllowedHttpMethods();
