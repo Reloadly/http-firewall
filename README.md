@@ -1,5 +1,6 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Build Status](https://github.com/Reloadly/http-firewall/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/Reloadly/http-firewall/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/Reloadly/http-firewall/branch/main/graph/badge.svg?token=E605JYZ763)](https://codecov.io/gh/Reloadly/http-firewall)
 [![Issues](https://img.shields.io/github/issues/Reloadly/http-firewall.svg)](https://github.com/Reloadly/http-firewall/issues)
 [![Latest Release](https://img.shields.io/github/v/release/Reloadly/http-firewall?include_prereleases&sort=semver)](https://github.com/Reloadly/http-firewall/releases)
 
