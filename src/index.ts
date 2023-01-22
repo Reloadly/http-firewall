@@ -1,1 +1,1 @@
-export * from './strict.http.firewall'
+export * from './strict.http.firewall';

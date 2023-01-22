@@ -1,1 +1,1 @@
-export * from './firewall/firewall-models'
+export * from './firewall/firewall-models';
