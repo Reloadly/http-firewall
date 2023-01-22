@@ -1,5 +1,5 @@
 {
-  "name": "httpt-firewall",
+  "name": "@prizemates/httpt-firewall",
   "version": "0.0.1",
   "description": "HTTP Firewall",
   "private": false,
