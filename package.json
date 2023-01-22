@@ -1,7 +1,7 @@
 {
   "name": "@prizemates/httpt-firewall",
   "version": "0.0.1",
-  "description": "HTTP Firewall",
+  "description": "HTTP Firewall based on Spring Security HttpFirewall",
   "private": false,
   "main": "./dist/demo/demo.js",
   "types": "./dist/index.d.ts",
