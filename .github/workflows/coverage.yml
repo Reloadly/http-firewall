@@ -1,0 +1,24 @@
+name: Code Coverage
+
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+      - name: Install dependencies
+        run: npm install
+      - name: Run the tests
+        run: npm test -- --coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
