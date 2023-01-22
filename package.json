@@ -1,22 +1,22 @@
 {
-  "name": "@prizemates/httpt-firewall",
-  "version": "0.0.2",
+  "name": "@prizemates/http-firewall",
+  "version": "0.0.3",
   "description": "HTTP Firewall based on Spring Security HttpFirewall",
   "private": false,
-  "main": "./dist/demo/demo.js",
-  "types": "./dist/index.d.ts",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "files": [
-    "dist/**/*"
+    "lib/**/*"
   ],
   "scripts": {
     "build": "tsc",
-    "start": "node dist/demo/demo.js",
-    "demo": "node dist/demo/demo.js",
+    "start": "node lib/demo/demo.js",
+    "demo": "node lib/demo/demo.js",
     "test": "jest",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint",
-    "prepare" : "npm run build",
-    "prepublishOnly" : "npm test && npm run lint"
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint"
   },
   "jest": {
     "testMatch": [

@@ -9,9 +9,8 @@
     "lib": [
       "es2019"
     ],
-    "declarationMap": true,
     "module": "commonjs",
-    "outDir": "dist",
+    "outDir": "lib",
     "esModuleInterop": true,
     "moduleResolution": "node"
   },

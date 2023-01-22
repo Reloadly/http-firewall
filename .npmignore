@@ -3,7 +3,6 @@
 /package-lock.json
 
 # coverage
-/.nyc_output
 /coverage
 
 src
