@@ -1,15 +1,46 @@
 import {NextFunction, Request, Response} from "express";
-import {HttpFirewall, HttpFirewallOptions, HttpMethod, Predicate} from "./types";
+import {FORBIDDEN, HttpFirewall, HttpFirewallOptions, HttpMethod, Predicate, RequestRejectedError} from "./types";
 
 /**
- * Convenience method to get a default StrictHttpFirewall
+ * <p>
+ *     A direct port of the Spring Security StrictHttpFirewall to run in a NodeJS environment. This works as a
+ *     middleware that can be applied to a Express server.
+ * </p>
+ * <p>
+ * </p>
+ * <p>
+ * A strict implementation of {@link HttpFirewall} that rejects any suspicious requests.
+ * The request is rejected with a HTTP status code 403, and no further middleware are called.
+ * </p>
+ * <p>
+ * The following rules are applied to the firewall:
+ * </p>
+ * <ul>
+ * <li>Rejects HTTP methods that are not allowed. This specified to block
+ * <a href="https://www.owasp.org/index.php/Test_HTTP_Methods_(OTG-CONFIG-006)">HTTP Verb
+ * tampering and XST attacks</a>. See {@link #setAllowedHttpMethods(Collection)}</li>
+ * <li>Rejects URLs that are not normalized to avoid bypassing security constraints. There
+ * is no way to disable this as it is considered extremely risky to disable this
+ * constraint.</li>
+ * <li>Rejects URLs that contain characters that are not printable ASCII characters. There
+ * is no way to disable this as it is considered extremely risky to disable this
+ * constraint.</li>
+ * <li>Rejects URLs that contain semicolons. </li>
+ * <li>Rejects URLs that contain a URL encoded slash. </li>
+ * <li>Rejects URLs that contain a backslash. </li>
+ * <li>Rejects URLs that contain a null character. </li>
+ * <li>Rejects URLs that contain a URL encoded percent. </li>
+ * <li>Rejects hosts that are not allowed. </li>
+ * <li>Reject headers names that are not allowed. </li>
+ * <li>Reject headers values that are not allowed. </li>
+ * <li>Reject parameter names that are not allowed. </li>
+ * <li>Reject parameter values that are not allowed. </li>
+ * </ul>
+ *
+ * @author Rob Winch
+ * @author Eddú Meléndez
+ * @author Arun Patra
  */
-// tslint:disable-next-line
-export const httpFirewall = (req: Request, res: Response, next: NextFunction)  => {
-
-    return new StrictHttpFirewall().firewall(req, res, next)
-}
-
 export class StrictHttpFirewall implements HttpFirewall {
 
     // Pre-defined constraints. These can be overriden
@@ -29,6 +60,7 @@ export class StrictHttpFirewall implements HttpFirewall {
 
 
     // ~~~~~~ holders
+    private logToConsole: boolean = false;
     private  encodedUrlBlocklist: string[] = [];
     private  decodedUrlBlocklist: string[] = [];
     private readonly allowedHttpMethods: HttpMethod[] = this.createDefaultAllowedHttpMethods();
@@ -51,24 +83,24 @@ export class StrictHttpFirewall implements HttpFirewall {
         this.urlBlocklistsAddAll(this.FORBIDDEN_NULL)
         this.urlBlocklistsAddAll(this.FORBIDDEN_LF)
         this.urlBlocklistsAddAll(this.FORBIDDEN_CR)
-
         this.encodedUrlBlocklist.push(this.ENCODED_PERCENT)
         this.encodedUrlBlocklist.push(... this.FORBIDDEN_ENCODED_PERIOD)
-
         this.decodedUrlBlocklist.push(this.PERCENT)
         this.encodedUrlBlocklist.push(... this.FORBIDDEN_LINE_SEPARATOR)
         this.encodedUrlBlocklist.push(... this.FORBIDDEN_PARAGRAPH_SEPARATOR)
 
-        // this.encodedUrlBlocklist.push(... this.FUNKY_CHAR)
-
         if (options !== undefined) {
+
+            if (options.logToConsole === true) {
+                this.logToConsole = true;
+            }
 
             this.allowedHttpMethods  = options.unsafeAllowAnyHttpMethod === true ?
                 this.ALLOW_ANY_HTTP_METHOD : this.createDefaultAllowedHttpMethods()
 
             if (options.allowedHttpMethods !== undefined) {
                 this.allowedHttpMethods  = options.allowedHttpMethods.length !== 0 ?
-                    // todo remove duplicates
+                    // remove duplicates
                     options.allowedHttpMethods : this.ALLOW_ANY_HTTP_METHOD
             }
 
@@ -116,25 +148,12 @@ export class StrictHttpFirewall implements HttpFirewall {
                 this.decodedUrlBlocklist.push(this.PERCENT)
             }
 
-            /**
-             * Determines if a URL encoded Carriage Return is allowed in the path or not. The
-             * default is not to allow this behavior because it is a frequent source of security
-             * exploits.
-             * @param allowUrlEncodedCarriageReturn if URL encoded Carriage Return is allowed in
-             * the URL or not. Default is false.
-             */
             if (options.allowUrlEncodedCarriageReturn === true) {
                 this.urlBlocklistsRemoveAll(this.FORBIDDEN_CR)
             } else {
                 this.urlBlocklistsAddAll(this.FORBIDDEN_CR)
             }
 
-            /**
-             * Determines if a URL encoded Line Feed is allowed in the path or not. The default is
-             * not to allow this behavior because it is a frequent source of security exploits.
-             * @param allowUrlEncodedLineFeed if URL encoded Line Feed is allowed in the URL or
-             * not. Default is false.
-             */
             if (options.allowUrlEncodedLineFeed === true) {
                 this.urlBlocklistsRemoveAll(this.FORBIDDEN_LF)
             } else {
@@ -175,34 +194,37 @@ export class StrictHttpFirewall implements HttpFirewall {
         }
     }
 
-    /**
-     * The fun happens here...
-     * @param req
-     * @param res
-     * @param next
-     */
-    public firewall = (req: Request, res: Response, next: NextFunction): void => {
+    public firewall = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
 
-        this.rejectForbiddenHttpMethod(req, res)
-        this.rejectedBlocklistedUrls(req, res);
-        this.rejectedUntrustedHosts(req, res);
+        await this.rejectForbiddenHttpMethod(req)
+            .then(() => this.rejectedBlocklistedUrls(req))
+            .then(() => this.rejectedUntrustedHosts(req))
+            .then(() => this.rejectNonNormalizedRequests(req))
+            .then(() => this.rejectNonPrintableAsciiCharactersInFieldName(req, req.url, 'requestURI'))
+            .then(() => next())
+            .catch(error => {
+                if (this.logToConsole === true) {
+                    console.warn(error.message)
+                }
+                this.reject(req, res);
+            })
 
-        // TODO: test this
+    }
+
+    private rejectNonNormalizedRequests = async (req: Request) : Promise<void> => {
         if (!StrictHttpFirewall.isNormalizedRequest(req)) {
             throw new RequestRejectedError(`The request was rejected because the URL was not normalized.`);
         }
-
-        this.rejectNonPrintableAsciiCharactersInFieldName(req.url, 'requestURI')
-
-        next();
     }
 
-    private rejectNonPrintableAsciiCharactersInFieldName = (toCheck:string, propertyName:string) => {
+    private rejectNonPrintableAsciiCharactersInFieldName = async (req: Request, toCheck:string,
+                                                            propertyName:string) : Promise<void> => {
         if (!StrictHttpFirewall.containsOnlyPrintableAsciiCharacters(toCheck)) {
             throw new RequestRejectedError(`The ${propertyName} was rejected because it can only contain \
             printable ASCII characters.`);
         }
     }
+
     private urlBlocklistsAddAll(values: string[]) {
         this.encodedUrlBlocklist.push(... values);
         this.decodedUrlBlocklist.push(... values);
@@ -222,20 +244,19 @@ export class StrictHttpFirewall implements HttpFirewall {
         }
     }
 
-    private rejectedBlocklistedUrls = (req: Request, res: Response) : void => {
-        const error = new RequestRejectedError(`The request was rejected because the URL contained a potentially ` +
-            `malicious String ${req.url}`);
+    private rejectedBlocklistedUrls = async (req: Request) : Promise<void> => {
+        const errorMessage = `The request was rejected because the URL contained a potentially ` +
+            `malicious String ${req.url}`;
+        const error = new RequestRejectedError(errorMessage);
 
         for (const forbidden of this.encodedUrlBlocklist) {
             if (StrictHttpFirewall.encodedUrlContains(req, forbidden)) {
-                this.reject(req, res);
                 throw error;
             }
         }
 
         for (const forbidden of this.decodedUrlBlocklist) {
             if (StrictHttpFirewall.decodedUrlContains(req, forbidden)) {
-                this.reject(req, res);
                 throw error;
             }
         }
@@ -268,6 +289,7 @@ export class StrictHttpFirewall implements HttpFirewall {
         return StrictHttpFirewall.valueContains(req.path, value);
 
     }
+
     private static containsOnlyPrintableAsciiCharacters = (uri: string) : boolean => {
         if (uri === undefined || uri === null) {
             return true;
@@ -287,6 +309,12 @@ export class StrictHttpFirewall implements HttpFirewall {
         return value != null && (value.indexOf(contains) !== -1);
     }
 
+    /**
+     * Checks whether a path is normalized (doesn't contain path traversal sequences like
+     * "./", "/../" or "/.")
+     * @param path the path to test
+     * @return true if the path doesn't contain any path-traversal character sequences.
+     */
     private static isNormalized = (path: string) : boolean => {
         if (path === undefined || path === null) {
             return true;
@@ -306,27 +334,26 @@ export class StrictHttpFirewall implements HttpFirewall {
         return true;
     }
 
-    private rejectedUntrustedHosts = (req: Request, res: Response) : void => {
+    private rejectedUntrustedHosts = async (req: Request) : Promise<void> => {
 
         const serverName = req.hostname
         if (serverName !== undefined && serverName !== null && !this.allowedHostnames.test(serverName)) {
-            this.reject(req, res)
             throw new RequestRejectedError(`The request was rejected because the domain ${serverName} is untrusted.`)
         }
     }
 
-    private rejectForbiddenHttpMethod = (req: Request, res: Response) : void => {
+    private rejectForbiddenHttpMethod = async (req: Request) : Promise<void> => {
         if (this.allowedHttpMethods === this.ALLOW_ANY_HTTP_METHOD) {
             return;
         }
 
         const method = <HttpMethod>req.method.toUpperCase();
         if (this.allowedHttpMethods.indexOf(method) === -1) {
-            this.reject(req, res)
-            throw new RequestRejectedError(`The request was rejected because the HTTP method ${method} was not \ 
-            included within the list of allowed HTTP methods + ${this.allowedHttpMethods}`);
+            throw new RequestRejectedError(`The request was rejected because the HTTP method ${method} was not ` +
+                `included within the list of allowed HTTP methods + ${this.allowedHttpMethods}`);
         }
     }
+
     private reject = (req: Request, res: Response) => {
         res.writeHead(403, { "Content-Type": "text/plain" })
         res.end(JSON.stringify(FORBIDDEN));
@@ -338,14 +365,6 @@ export class StrictHttpFirewall implements HttpFirewall {
     }
 }
 
-class RequestRejectedError extends Error {
-    constructor(message?: string) {
-        super(message);
-        this.name = 'RequestRejectedError';
-        Object.setPrototypeOf(this, new.target.prototype);
-    }
+export const httpFirewall = async (req: Request, res: Response, next: NextFunction)  => {
+    return await new StrictHttpFirewall().firewall(req, res, next)
 }
-
-const FORBIDDEN =  "FORBIDDEN";
-
-

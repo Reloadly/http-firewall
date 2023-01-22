@@ -12,7 +12,7 @@ app.use(new StrictHttpFirewall(firewallOptions()).firewall)
 //app.use(httpFirewall)
 
 app.get('/', (req: Request, res: Response) => {
-    res.send('Express + TypeScript Server');
+    res.send('Http Firewall Demo running');
 });
 
 app.listen(port, () => {
@@ -23,18 +23,12 @@ app.listen(port, () => {
 function firewallOptions() : HttpFirewallOptions  {
 
     // Allows traffic from specific hosts only
-    const allowedHostnames = Predicate.of<string>(h => h === "example.com")
-        .or(Predicate.of<string>(h => h === "localhost"));
+    const allowedHostnamesPredicate =
+        Predicate.of<string>(h => h.endsWith('example.com')).or(
+            Predicate.of<string>(h => h === "localhost"));
 
-    const options : HttpFirewallOptions = {
-        allowedHostnames : allowedHostnames,
-        unsafeAllowAnyHttpMethod: true,
+    return {
+        allowedHostnames: allowedHostnamesPredicate,
         allowedHttpMethods: ['POST', 'GET'],
-
-
     };
-
-    console.log(`Options passed: ${JSON.stringify(options)}`)
-
-    return options;
 }
