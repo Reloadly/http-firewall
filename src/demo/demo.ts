@@ -17,7 +17,7 @@ app.listen(port, () => {
 
 function firewallOptions(): HttpFirewallOptions {
   // Allows traffic from specific hosts only
-  const allowedHostnamesPredicate = Predicate.of<string>((h) => h.endsWith('example.com')).or(
+  const allowedHostnamesPredicate = Predicate.of<string>((h) => h === 'www.example.com').or(
     Predicate.of<string>((h) => h === 'localhost'),
   );
 

@@ -273,7 +273,7 @@ class StrictHttpFirewall {
   private readonly allowedHttpMethods: HttpMethod[] = this.createDefaultAllowedHttpMethods();
   private readonly allowedHostnames: Predicate<String> = new Predicate<string>((hostName) => true);
   private readonly ASSIGNED_AND_NOT_ISO_CONTROL_PATTERN: RegExp = new RegExp(
-    `[\p{IsAssigned}&&[^\p{IsControl}]]*`,
+    '[\\p{IsAssigned}&&[^\\p{IsControl}]]*',
     'g',
   );
   private readonly ASSIGNED_AND_NOT_ISO_CONTROL_PREDICATE: Predicate<string> = new Predicate<string>((testName) =>
