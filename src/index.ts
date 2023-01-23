@@ -1,6 +1,2 @@
-export {
-  httpFirewall,
-  HttpFirewallOptions,
-  HttpMethod,
-  Predicate
-} from './strict-http-firewall';
+export { httpFirewall } from './strict-http-firewall';
+export { HttpFirewallOptions, HttpMethod, Predicate } from './types/firewall.models';

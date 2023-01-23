@@ -1,6 +1,6 @@
 {
   "name": "@prizemates/http-firewall",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "HTTP Firewall based on Spring Security HttpFirewall",
   "private": false,
   "main": "./lib/index.js",
