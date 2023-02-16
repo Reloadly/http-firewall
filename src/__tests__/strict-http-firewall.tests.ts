@@ -147,6 +147,24 @@ describe('HttpStrictFirewall test suite', () => {
       expect(res.statusCode).toBe(403);
     });
 
+    it('Should reject request when user provided decoded url block list is provided', async () => {
+      const app = express();
+
+      const options: HttpFirewallOptions = {decodedUrlBlockList : ['.exe', '.pl']};
+      app.use(httpFirewall(options));
+      const res = await request(app).get('/test/some-file.exe').set('Content-Type', 'application/json');
+      expect(res.statusCode).toBe(403);
+    });
+
+    it('Should reject request when user provided encoded url block list is provided', async () => {
+      const app = express();
+
+      const options: HttpFirewallOptions = {encodedUrlBlockList : ['.exe', '.pl']};
+      app.use(httpFirewall(options));
+      const res = await request(app).get('/test/some-file.exe').set('Content-Type', 'application/json');
+      expect(res.statusCode).toBe(403);
+    });
+
     it('Should allow encoded period when permitted', async () => {
       const app = express();
 
