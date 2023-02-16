@@ -139,6 +139,14 @@ class StrictHttpFirewall {
       if (options.allowedHostnames !== undefined) {
         this.allowedHostnames = options.allowedHostnames;
       }
+
+      if (options.decodedUrlBlockList !== undefined && options.decodedUrlBlockList.length !== 0) {
+        this.decodedUrlBlocklist.push(... options.decodedUrlBlockList);
+      }
+
+      if (options.encodedUrlBlockList !== undefined && options.encodedUrlBlockList.length !== 0) {
+        this.encodedUrlBlocklist.push(... options.encodedUrlBlockList);
+      }
     }
   }
 

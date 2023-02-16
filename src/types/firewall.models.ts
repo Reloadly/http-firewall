@@ -231,4 +231,16 @@ export interface HttpFirewallOptions {
    * Default is false
    */
   logToConsole?: boolean;
+
+  /**
+   * A list of strings that are considered malicious in URLs. If these strings are found in the request URL, the
+   * request will be rejected.
+   */
+  decodedUrlBlockList?: string[];
+
+  /**
+   * A list of strings that are considered malicious in encoded URLs. If these strings are found in the request URL, the
+   * request will be rejected.
+   */
+  encodedUrlBlockList?: string[];
 }
